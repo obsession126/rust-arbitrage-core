@@ -21,6 +21,10 @@
 * **Чистота даних (Zero Noise):** Основний акцент на OSINT-збагаченні. На виході система видає готовий бізнес-актив, а не просто "сміттєвий" список контактів.
 
 ---
+
+### 🏗️ ARCHITECTURE
+
+```mermaid
 graph TD
     %% Фронтенди
     subgraph Clients [Interface Layer]
@@ -58,50 +62,3 @@ graph TD
     Redis <--> Workers
     Logic <--> Postgres
     Workers --> Postgres
-
-### 🔍 OSINT-МЕХАНІКА: АЛГОРИТМ АНАЛІЗУ
-
-Процес OSINT у системі — це багатоетапне дослідження цифрового відбитка об'єкта, що реалізовано через наступні модулі:
-
-#### 1. Технічна верифікація (WHOIS Intelligence)
-Аналіз походження домену. Система визначає дату реєстрації, що дозволяє автоматично оцінити рівень трасту об'єкта та відсіяти "одноденки".
-
-#### 2. Емуляція Human-Behavior (Playwright Engine)
-Використання `Playwright` з кастомними User-Agents для обходу JS-захисту. Система рендерить сторінку, імітує скролінг (`mouse.wheel`) та очікує підвантаження асинхронних елементів, витягуючи дані, приховані від звичайних HTTP-клієнтів.
-
-#### 3. Інтелектуальна екстракція контактів
-* **Pattern Matching:** Пошук Email та соцмереж через оптимізовані Regex-патерни.
-* **Phone Scrubbing:** Розумне очищення телефонів (`clean_phones`) з валідацією префіксів (PL, UA, US, etc.) та фільтрацією системних номерів.
-* **Link Mining:** Збір прямих посилань з атрибутів `tel:`, `mailto:` та соціальних медіа-хабів.
-
-#### 4. Signal Intelligence (Ad Monitoring)
-Унікальний модуль перехоплення мережевих запитів (`check_ads_request`). Система фіксує активність пікселів:
-* **Google Ad Services / DoubleClick**
-* **Facebook Pixel**
-* **TikTok Analytics**
-* *Висновок:* Наявність рекламних скриптів підтверджує фінансову активність та ліквідність об'єкта.
-
-#### 5. Соціальний скоринг
-Автоматична перевірка знайдених профілів (Instagram, TikTok, Telegram) на реальну активність. Система аналізує контент сторінок на наявність постів та взаємодій, відсікаючи неактивні лінки.
-
----
-
-### 🛠 ТЕХНОЛОГІЧНИЙ СТЕК
-* **Backend:** `Rust` (Axum, Tokio)
-* **Scraping:** `Python` (Playwright, Scrapy, Whois)
-* **Message Broker:** `Redis` (Async queues)
-* **Database:** `PostgreSQL`
-* **Infrastructure:** `Docker`
-
----
-
-### 🚀 ЗАПУСК
-```bash
-# Клонування
-git clone [https://github.com/your-username/shadow-lead-engine.git](https://github.com/your-username/shadow-lead-engine.git)
-
-# Конфігурація
-cp .env.example .env
-
-# Розгортання
-docker-compose up -d --build
