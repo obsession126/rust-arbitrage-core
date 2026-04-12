@@ -21,6 +21,43 @@
 * **Чистота даних (Zero Noise):** Основний акцент на OSINT-збагаченні. На виході система видає готовий бізнес-актив, а не просто "сміттєвий" список контактів.
 
 ---
+graph TD
+    %% Фронтенди
+    subgraph Clients [Interface Layer]
+        TG[Telegram Bot - Rust/Teloxide]
+        Web[Future Web Dashboard - Vue/React]
+    end
+
+    %% Оркестрація та API
+    subgraph Core [Orchestration Layer - Rust]
+        Gateway[API Gateway / Auth]
+        Logic[Business Logic Engine]
+    end
+
+    %% Повідомлення та черги
+    subgraph Transport [Message Broker]
+        Redis[(Redis Cloud / Streams)]
+    end
+
+    %% Воркери
+    subgraph Workers [OSINT Intelligence Layer]
+        Scanner[Playwright Stealth Scanner]
+        AdEngine[Signal Intelligence Module]
+        Parser[Python/Rust Data Scrubbers]
+    end
+
+    %% Дані
+    subgraph Storage [Data Layer]
+        Postgres[(PostgreSQL - Main DB)]
+    end
+
+    %% Зв'язки
+    TG & Web --> Gateway
+    Gateway --> Logic
+    Logic <--> Redis
+    Redis <--> Workers
+    Logic <--> Postgres
+    Workers --> Postgres
 
 ### 🔍 OSINT-МЕХАНІКА: АЛГОРИТМ АНАЛІЗУ
 
