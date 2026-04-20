@@ -1,0 +1,46 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT id, target_url, target_name, rank::text as \"rank!\", raw_data \n        FROM leads \n        WHERE user_id IS NULL AND is_active = true AND status = 'completed'\n        LIMIT $1\n        FOR UPDATE SKIP LOCKED\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "target_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "target_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "rank!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "raw_data",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      null,
+      true
+    ]
+  },
+  "hash": "4d105468003a1d0840952de71ef398432c1087f00112ec42ab79e71a88b88775"
+}

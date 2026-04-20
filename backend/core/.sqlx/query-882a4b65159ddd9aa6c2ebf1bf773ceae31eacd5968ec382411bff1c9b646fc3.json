@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO transactions (id, user_id, amount, status)\n         VALUES ($1, $2, $3, 'pending')",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "882a4b65159ddd9aa6c2ebf1bf773ceae31eacd5968ec382411bff1c9b646fc3"
+}

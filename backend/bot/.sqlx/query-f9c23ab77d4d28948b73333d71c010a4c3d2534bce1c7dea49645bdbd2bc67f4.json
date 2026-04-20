@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT COUNT(*) FROM leads WHERE category = $1 AND rank::text = $2 AND user_id IS NULL AND is_active = true",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "f9c23ab77d4d28948b73333d71c010a4c3d2534bce1c7dea49645bdbd2bc67f4"
+}

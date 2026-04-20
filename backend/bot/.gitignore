@@ -6,9 +6,8 @@
 .env.*
 !.env.example
 
-
-Cargo.lock
 # Тимчасові файли Cargo
+Cargo.lock
 Cargo.lock.sv
 **/*.rs.bk
 

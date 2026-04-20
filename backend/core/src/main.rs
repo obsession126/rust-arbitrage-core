@@ -1,37 +1,34 @@
-use actix_web::{web, App, HttpServer, middleware};
-use dotenv::dotenv;
-use std::env;
-
-mod routes;
+use actix_web::{App, HttpServer, web};
+use actix_web::middleware::Logger;
+mod config;
 mod db;
-mod models;
+mod apps;
+
+use db::init_db;
+use db::redis::{init_redis, RedisClient};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    dotenv().ok();
-    
-    // 1. Отримуємо конфіги
-    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    let redis_url = env::var("REDIS_URL").expect("REDIS_URL must be set");
+    dotenvy::dotenv().ok();
+    let config = config::Config::from_env();
 
-    // 2. Ініціалізуємо БД
-    let pool = db::init_db(&database_url).await;
+    // Замість .expect()
+    let jwt_secret = std::env::var("JWT_SECRET").unwrap_or_else(|_| "fixed_secret_for_dev_only_123".to_string());
 
-    // 3. Ініціалізуємо Redis
-    let redis_client = redis::Client::open(redis_url)
-        .expect("❌ Не вдалося створити клієнт Redis");
+    let pool = init_db(&config.database_url).await;
+    let redis = init_redis(&config.redis_url);
 
-    println!("🚀 Refinery Server started at http://127.0.0.1:8080");
-
-    // 4. Запускаємо сервер
     HttpServer::new(move || {
         App::new()
-            // Прокидуємо БД (pool уже загорнутий в Arc/Data всередині sqlx, тому clone тут дешевий)
-            .app_data(web::Data::new(pool.clone())) 
-            // Прокидуємо Redis
-            .app_data(web::Data::new(redis_client.clone()))
-            .wrap(middleware::Logger::default())
-            .configure(routes::leads::config)
+            .wrap(Logger::default())
+            // 🐘 Postgres
+            .app_data(web::Data::new(pool.clone()))
+
+            // 🔴 Redis
+            .app_data(web::Data::new(redis.clone()))
+            .app_data(web::Data::new(jwt_secret.clone()))
+
+            .configure(apps::init_apps)
     })
     .bind(("127.0.0.1", 8080))?
     .run()

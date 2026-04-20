@@ -1,0 +1,38 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT id, target_url, target_name, raw_data \n        FROM leads \n        WHERE rank::text = 'platinum' AND user_id IS NULL AND is_active = true \n        LIMIT 1 FOR UPDATE SKIP LOCKED\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "target_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "target_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "raw_data",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "071b5696cf023de177827cb662010db5bd53bc6fcbb073cc0ef34ad46e379768"
+}
