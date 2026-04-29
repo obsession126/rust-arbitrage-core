@@ -1,73 +1,197 @@
-// src/app/dashboard/page.tsx
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+
+interface Lead {
+  id: string;
+  target_name: string;
+  target_url: string;
+  category: string;
+  rank: string;
+  status: string | null;
+  created_at: string | null;
+}
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8080";
 
 export default function Dashboard() {
-  const [filter, setFilter] = useState("all");
+  const router = useRouter();
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  // Filters
+  const [search, setSearch] = useState("");
+  const [filterRank, setFilterRank] = useState("all");
+  const [filterCategory, setFilterCategory] = useState("all");
 
-  // Імітація куплених лідів
-  const purchasedLeads = [
-    { id: 1, target: "green-energy.co", rank: "platinum", status: "extracted", date: "2026-04-15" },
-    { id: 2, target: "solar-roofs.io", rank: "gold", status: "processing", date: "2026-04-16" },
-  ];
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      router.push("/login");
+      return;
+    }
+
+    const fetchLeads = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/dashboard`, { 
+          headers: { 
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json"
+          }
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          setLeads(data);
+        } else {
+          console.error("Access denied or server error");
+          if (res.status === 401) router.push("/login");
+        }
+      } catch (err) {
+        console.error("Connection failed");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLeads();
+  }, [router]);
+
+  const filteredLeads = leads.filter(lead => {
+    const matchesSearch = lead.target_name.toLowerCase().includes(search.toLowerCase()) || 
+                          lead.target_url.toLowerCase().includes(search.toLowerCase());
+    const matchesRank = filterRank === "all" || lead.rank.toLowerCase() === filterRank.toLowerCase();
+    const matchesCategory = filterCategory === "all" || lead.category === filterCategory;
+    return matchesSearch && matchesRank && matchesCategory;
+  });
+
+  const exportToTxt = () => {
+    const content = filteredLeads.map(l => 
+      `TARGET: ${l.target_name} | URL: ${l.target_url} | RANK: ${l.rank.toUpperCase()} | CAT: ${l.category} | STATUS: ${l.status || 'UNKNOWN'}`
+    ).join("\n");
+    const blob = new Blob([content], { type: "text/plain" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `leads_export_${new Date().toISOString().split('T')[0]}.txt`;
+    link.click();
+  };
+
+  if (loading) return (
+    <div className="min-h-screen bg-[#050505] flex items-center justify-center font-mono text-terminal animate-pulse uppercase tracking-widest text-sm">
+      [ SYNCING_WITH_DATABASE... ]
+    </div>
+  );
 
   return (
-    <main className="min-h-screen p-8 transition-colors duration-300 dark:bg-[#050505] bg-[#f9f9f9] dark:text-white text-black">
-      <div className="max-w-6xl mx-auto mt-10">
+    <main className="min-h-screen bg-[#050505] text-white font-mono p-4 md:p-8">
+      <div className="max-w-7xl mx-auto">
         
-        {/* Analytics Mini-Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-          {[
-            { label: "Total Assets", val: "24", sub: "Validated Leads" },
-            { label: "Net Value", val: "$2,840", sub: "Est. ROI: 12x" },
-            { label: "Extraction Rate", val: "98%", sub: "Node Efficiency" }
-          ].map((stat, i) => (
-            <div key={i} className="border dark:border-white/5 border-black/10 p-6 bg-white/[0.01] backdrop-blur-md">
-              <div className="text-[10px] uppercase text-gray-500 mb-2">{stat.label}</div>
-              <div className="text-3xl font-black text-terminal">{stat.val}</div>
-              <div className="text-[9px] text-gray-400 mt-1 uppercase italic">{stat.sub}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Lead Terminal Table */}
-        <div className="border dark:border-white/10 border-black/10 overflow-hidden">
-          <div className="p-4 border-b dark:border-white/5 border-black/5 flex justify-between items-center bg-black/5">
-            <span className="text-xs font-bold uppercase tracking-widest">Active Inventory</span>
-            <div className="flex gap-4">
-              <select className="bg-transparent text-[10px] uppercase outline-none cursor-pointer border border-white/10 px-2 py-1">
-                <option>Rank: All</option>
-                <option>Platinum</option>
-                <option>Gold</option>
-              </select>
-            </div>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4 border-b border-white/10 pb-6">
+          <div>
+            <h1 className="text-3xl font-black uppercase italic tracking-tighter">
+              Access_<span className="text-terminal drop-shadow-[0_0_8px_rgba(57,255,20,0.5)]">Hub</span>
+            </h1>
+            <p className="text-gray-500 text-[10px] uppercase tracking-widest mt-1">Authenticated Session / Secure Connection</p>
           </div>
           
-          <table className="w-full text-left text-[11px] font-mono">
-            <thead className="dark:bg-white/5 bg-black/5 uppercase text-gray-500">
-              <tr>
-                <th className="p-4">Target Domain</th>
-                <th className="p-4">Class</th>
-                <th className="p-4">Status</th>
-                <th className="p-4">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y dark:divide-white/5 divide-black/5">
-              {purchasedLeads.map((lead) => (
-                <tr key={lead.id} className="hover:bg-terminal/5 transition-colors group">
-                  <td className="p-4 font-bold">{lead.target}</td>
-                  <td className="p-4 uppercase text-terminal">{lead.rank}</td>
-                  <td className="p-4 italic text-gray-500">{lead.status}</td>
-                  <td className="p-4">
-                    <button className="text-terminal border border-terminal/20 px-3 py-1 hover:bg-terminal hover:text-black transition-all">
-                      OPEN_REPORT
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          {leads.length > 0 && (
+            <button 
+              onClick={exportToTxt}
+              className="bg-terminal text-black px-6 py-2 text-[10px] font-black uppercase hover:bg-white transition-all shadow-[0_0_10px_rgba(57,255,20,0.2)] hover:shadow-[0_0_15px_rgba(255,255,255,0.4)]"
+            >
+              Export_Filtered.txt
+            </button>
+          )}
         </div>
+
+        {leads.length === 0 ? (
+          <div className="border border-white/5 p-20 text-center bg-[#080808]">
+            <h2 className="text-xl font-bold uppercase mb-4 text-gray-500">No_Active_Leads_Detected</h2>
+            <Link href="/catalog" className="inline-block bg-white text-black px-8 py-3 font-black uppercase text-xs hover:bg-terminal transition-all shadow-md">
+              Initialize_First_Purchase
+            </Link>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <input 
+                type="text" 
+                placeholder="SEARCH_TARGET..."
+                className="bg-[#0D0D0D] border border-white/10 p-4 text-[10px] outline-none focus:border-terminal uppercase text-white transition-colors placeholder:text-gray-600"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+              
+              <select 
+                className="bg-[#0D0D0D] border border-white/10 p-4 text-[10px] outline-none focus:border-terminal uppercase cursor-pointer text-white appearance-none transition-colors"
+                value={filterRank}
+                onChange={(e) => setFilterRank(e.target.value)}
+              >
+                <option value="all" className="bg-[#0D0D0D] text-white">Rank: All_Levels</option>
+                <option value="platinum" className="bg-[#0D0D0D] text-white">Platinum</option>
+                <option value="gold" className="bg-[#0D0D0D] text-white">Gold</option>
+                <option value="silver" className="bg-[#0D0D0D] text-white">Silver</option>
+                <option value="local_star" className="bg-[#0D0D0D] text-white">Local_Star</option>
+              </select>
+
+              <select 
+                className="bg-[#0D0D0D] border border-white/10 p-4 text-[10px] outline-none focus:border-terminal uppercase cursor-pointer text-white appearance-none transition-colors"
+                value={filterCategory}
+                onChange={(e) => setFilterCategory(e.target.value)}
+              >
+                <option value="all" className="bg-[#0D0D0D] text-white">Category: All_Niches</option>
+                {Array.from(new Set(leads.map(l => l.category))).map(cat => (
+                  <option key={cat} value={cat} className="bg-[#0D0D0D] text-white">{cat}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="bg-[#0D0D0D] border border-white/10 overflow-x-auto shadow-2xl">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-white/5 text-[9px] uppercase text-gray-500 tracking-widest border-b border-white/10">
+                    <th className="p-5 font-bold">Target_Identity</th>
+                    <th className="p-5 font-bold">Niche</th>
+                    <th className="p-5 font-bold">Rank & Status</th>
+                    <th className="p-5 font-bold text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {filteredLeads.map((lead) => (
+                    <tr key={lead.id} className="hover:bg-terminal/5 transition-all group">
+                      <td className="p-5">
+                        <div className="font-black text-sm uppercase group-hover:text-terminal transition-colors">{lead.target_name}</div>
+                        <a href={lead.target_url} target="_blank" rel="noopener noreferrer" className="text-[9px] text-gray-600 lowercase hover:text-white transition-colors">{lead.target_url}</a>
+                      </td>
+                      <td className="p-5 uppercase text-[10px] text-gray-400 font-bold">[{lead.category}]</td>
+                      <td className="p-5">
+                        <div className={`font-black text-[10px] uppercase ${
+                          lead.rank.toLowerCase() === 'platinum' ? 'text-cyan-400 drop-shadow-[0_0_5px_rgba(34,211,238,0.8)]' : 
+                          lead.rank.toLowerCase() === 'gold' ? 'text-yellow-500' : 
+                          'text-white'
+                        }`}>
+                          {lead.rank}
+                        </div>
+                        <div className="text-[8px] text-gray-600 uppercase mt-1">
+                          {lead.status === "completed" ? <span className="text-terminal">OSINT_DONE</span> : lead.status || "PROCESSING"}
+                        </div>
+                      </td>
+                      <td className="p-5 text-right">
+                        <Link 
+                          href={`/dashboard/leads/${lead.id}`}
+                          className="inline-block bg-white/5 border border-white/10 p-2 hover:border-terminal hover:bg-terminal/10 hover:text-terminal transition-all cursor-pointer"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"/></svg>
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
       </div>
     </main>
   );

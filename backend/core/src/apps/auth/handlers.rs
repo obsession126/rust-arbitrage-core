@@ -9,20 +9,17 @@ use crate::apps::auth::dto::{UserStatusResponse, EmailRegisterRequest, GoogleLog
 
 use bcrypt::{hash, DEFAULT_COST};
 
-
-
 use validator::Validate;
 
 pub async fn email_register_handler(
     pool: web::Data<PgPool>,
-    jwt_secret: web::Data<String>, // <--- Додаємо сюди
+    jwt_secret: web::Data<String>,
     body: web::Json<EmailRegisterRequest>,
 ) -> HttpResponse {
     if let Err(e) = body.validate() {
         return HttpResponse::BadRequest().json(e); 
     }
 
-    // Замість std::env::var
     let secret = jwt_secret.get_ref(); 
 
     let clean_email = body.email.trim().to_lowercase();
@@ -50,7 +47,7 @@ pub async fn email_register_handler(
 
     match result {
         Ok(record) => {
-            let token = create_jwt(record.id, secret);
+            let token = create_jwt(record.id, &body.email, secret);
 
             HttpResponse::Ok().json(serde_json::json!({
                 "token": token,
@@ -80,7 +77,6 @@ pub async fn email_login_handler(
     let jwt_secret = std::env::var("JWT_SECRET").expect("JWT_SECRET must be set");
     let clean_email = body.email.trim().to_lowercase();
 
-
     let user_result = sqlx::query!(
         r#"
         SELECT id, password_hash, provider
@@ -99,10 +95,9 @@ pub async fn email_login_handler(
                 None => return HttpResponse::BadRequest().body("This account uses social login. Please sign in with Google/Telegram."),
             };
 
-            // 4. Порівнюємо паролі
             match bcrypt::verify(&body.password, &stored_hash) {
                 Ok(true) => {
-                    let token = create_jwt(user.id, &jwt_secret);
+                    let token = create_jwt(user.id, &body.email, &jwt_secret);
                     HttpResponse::Ok().json(serde_json::json!({
                         "token": token,
                         "user_id": user.id
@@ -120,9 +115,7 @@ pub async fn user_status_handler(
     pool: web::Data<PgPool>,
     path: web::Path<i64>,
 ) -> HttpResponse {
-
     let tg_id = path.into_inner();
-
     let user = sqlx::query!(
         r#"
         SELECT last_free_lead_at
@@ -167,12 +160,12 @@ pub async fn google_handler(
     pool: web::Data<PgPool>,
     body: web::Json<GoogleLoginRequest>,
 ) -> HttpResponse {
-
-    let secret = std::env::var("JWT_SECRET").unwrap();
+    let jwt_secret = std::env::var("JWT_SECRET").expect("JWT_SECRET must be set");
 
     match google_auth(pool.get_ref(), body.token.clone()).await {
         Ok(user) => {
-            let token = create_jwt(user.id, &secret);
+            let email_str = user.email.as_deref().unwrap_or("");
+            let token = create_jwt(user.id, email_str, &jwt_secret);
 
             HttpResponse::Ok().json(serde_json::json!({
                 "token": token,
@@ -183,14 +176,12 @@ pub async fn google_handler(
     }
 }
 
-
 pub async fn telegram_handler(
     pool: web::Data<PgPool>,
     body: web::Json<TelegramLoginRequest>,
 ) -> HttpResponse {
-
-    let bot_token = std::env::var("BOT_TOKEN").unwrap();
-    let jwt_secret = std::env::var("JWT_SECRET").unwrap();
+    let bot_token = std::env::var("BOT_TOKEN").expect("BOT_TOKEN must be set");
+    let jwt_secret = std::env::var("JWT_SECRET").expect("JWT_SECRET must be set");
 
     match telegram_auth(
         pool.get_ref(),
@@ -198,7 +189,8 @@ pub async fn telegram_handler(
         &bot_token
     ).await {
         Ok(user) => {
-            let token = create_jwt(user.id, &jwt_secret);
+            let email_str = user.email.as_deref().unwrap_or("");
+            let token = create_jwt(user.id, email_str, &jwt_secret);
 
             HttpResponse::Ok().json(serde_json::json!({
                 "token": token,
@@ -208,4 +200,3 @@ pub async fn telegram_handler(
         Err(e) => HttpResponse::BadRequest().body(e),
     }
 }
-

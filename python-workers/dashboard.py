@@ -13,7 +13,7 @@ load_dotenv()
 # УВАГА: URL має вказувати на твій Actix-web сервіс
 RUST_API_BASE = os.getenv("RUST_API_URL", "http://127.0.0.1:8080/api/create")
 REDIS_URL = os.getenv("REDIS_URL", "redis://127.0.0.1:6379")
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:pass@localhost:5432/db")
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:admin@127.0.0.1:5433/refinery")
 
 # Підключення
 r = redis.from_url(REDIS_URL, decode_responses=True)

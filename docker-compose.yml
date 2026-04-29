@@ -1,50 +1,44 @@
 services:
-  # 1. База даних
-  db:
-    image: postgres:15-alpine
-    container_name: leadhunter_db
-    restart: always
-    environment:
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: leadhunter
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    # Порт 5432 не прокидаємо назовні (тільки для тунелю 127.0.0.1:5432:5432)
-
-  # 2. Rust API (Core)
+  # 1. Rust Backend
   api:
     build: 
       context: ./backend/core
-    container_name: leadhunter_api
-    depends_on:
-      - db
+    container_name: refinery_api
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
-      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/leadhunter
+      - DATABASE_URL=postgres://user:admin@host.docker.internal:5433/refinery
+      - REDIS_URL=redis://host.docker.internal:6379
+      - JWT_SECRET=9908a4484ca6b67b28ab1bc503d15edc53c12c7c4697d92fbee48e74e674173e
+      - LEMON_SQUEEZY_WEBHOOK_SECRET=super_secret_rust_2026
     ports:
       - "8080:8080"
 
-  # 3. Rust Bot
-  bot:
-    build:
-      context: ./backend/bot
-    container_name: leadhunter_bot
-    depends_on:
-      - db
-    environment:
-      API_URL: ${API_URL}
-      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/leadhunter
-      TELOXIDE_TOKEN: ${BOT_TOKEN}
-
-  # 4. Frontend (Next.js)
+  # 2. Next.js Frontend
   frontend:
     build:
       context: ./frontend/leadhunter-site
-    container_name: leadhunter_ui
-    ports:
-      - "3000:3000"
+      dockerfile: Dockerfile
+    container_name: refinery_frontend
+    restart: always
+    depends_on:
+      - api
     environment:
-      NEXT_PUBLIC_API_URL: http://your_server_ip:8080
+      - NEXT_PUBLIC_API_URL=https://${DOMAIN}/api
 
-volumes:
-  pgdata:
+  # 3. Nginx (Gateway)
+  gateway:
+    image: nginx:alpine
+    container_name: refinery_gateway
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    depends_on:
+      - api
+      - frontend
+

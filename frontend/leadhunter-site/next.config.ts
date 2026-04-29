@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  allowedDevOrigins: ['172.24.160.1'],
+  // Додаємо цей IP сюди обов'язково
+  allowedDevOrigins: ['10.27.213.32', 'localhost:3000'],
   
   async rewrites() {
     return [

@@ -1,9 +1,6 @@
 use sqlx::PgPool;
 use uuid::Uuid;
 
-
-
-
 #[derive(serde::Deserialize)]
 struct RawData {
     emails: Vec<String>,
@@ -13,87 +10,74 @@ struct RawData {
     domain_age_days: Option<i32>,
 }
 
-pub async fn confirm_payment_tx(pool: &PgPool, transaction_id: Uuid) -> Result<String, String> {
+
+struct LeadPackage {
+    rank: String,
+    quantity: i64,
+}
+
+fn get_rank_from_variant(variant_id: &str) -> Option<String> {
+    match variant_id {
+        "61e53ba2-789e-4412-9653-4b3304e464ed" => Some("silver".into()),
+        "f9aaec65-f201-47fc-ac94-f0aed1664b10" => Some("gold".into()),
+        "46b8b264-fe58-4626-bb05-27fff988a13e" => Some("platinum".into()),
+        _ => None,
+    }
+}
+
+pub async fn confirm_payment_tx(
+    pool: &PgPool, 
+    transaction_id: Uuid, 
+    variant_id: &str,
+    actual_qty: i64 // Додаємо цей параметр
+) -> Result<i64, String> {
+    let target_rank = get_rank_from_variant(variant_id)
+        .ok_or_else(|| format!("Unknown variant_id: {}", variant_id))?;
+
     let mut tx = pool.begin().await.map_err(|e| e.to_string())?;
 
-
-    let res = sqlx::query!(
-        "UPDATE transactions SET status = 'paid' WHERE id = $1 AND status = 'pending' RETURNING user_id, quantity",
+    // Оновлюємо статус, але кількість тепер беремо ту, за яку реально заплатили
+    let order = sqlx::query!(
+        "UPDATE transactions SET status = 'paid' WHERE id = $1 RETURNING user_id",
         transaction_id
     )
-    .fetch_optional(&mut *tx).await.map_err(|e| e.to_string())?
-    .ok_or("Transaction not found or already paid")?;
+    .fetch_optional(&mut *tx)
+    .await
+    .map_err(|e| e.to_string())?
+    .ok_or("Transaction not found")?;
 
-    let quantity = res.quantity.unwrap_or(10) as i64;
+    let user_uuid = order.user_id.ok_or("No user linked to TX")?;
 
-
+    // ШУКАЄМО ЛІДИ: використовуємо actual_qty з вебхука!
     let leads = sqlx::query!(
         r#"
-        SELECT id, target_url, target_name, rank::text as "rank!", raw_data 
-        FROM leads 
-        WHERE user_id IS NULL AND is_active = true AND status = 'completed'
-        LIMIT $1
+        SELECT id FROM leads 
+        WHERE user_id IS NULL AND is_active = true AND rank::text = $1
+        LIMIT $2
         FOR UPDATE SKIP LOCKED
         "#,
-        quantity
+        target_rank,
+        actual_qty // ОПЛАТИВ 10 — ШУКАЄМО 10
     )
     .fetch_all(&mut *tx)
     .await
-    .map_err(|e: sqlx::Error| e.to_string())?;
+    .map_err(|e| e.to_string())?;
 
-    if leads.len() < quantity as usize {
-        return Err("Not enough processed leads in stock".into());
+    if (leads.len() as i64) < actual_qty {
+        return Err(format!("Stock error: Paid for {}, but only {} found", actual_qty, leads.len()));
     }
 
-    // 3. Формуємо ТЕКСТ
-    let mut report = String::from("🦾 REFINERY TERMINAL - ПРЕМИУМ ЛИДЫ\n");
-    report.push_str(&format!("ID Транзакции: {}\n", transaction_id));
-    report.push_str("──────────────────────────────────────────\n\n");
+    let lead_ids: Vec<Uuid> = leads.into_iter().map(|l| l.id).collect();
 
-    let mut lead_ids = Vec::new();
-
-    for (i, lead) in leads.iter().enumerate() {
-        lead_ids.push(lead.id);
-        
-        let raw: RawData = serde_json::from_value(lead.raw_data.clone().unwrap_or_default())
-            .unwrap_or(RawData { emails: vec![], phones: vec![], socials: Default::default(), ads: Default::default(), domain_age_days: None });
-
-        // Використовуємо target_name замість company_name
-        report.push_str(&format!("{}. 🏢 {}\n", i + 1, lead.target_name));
-        
-        // rank тепер гарантовано String завдяки аліасу "rank!" у запиті
-        report.push_str(&format!("💎 РАНГ: {}\n", lead.rank.to_uppercase()));
-        
-        report.push_str(&format!("🌐 Сайт: {}\n", lead.target_url));
-        
-        // Для Emails
-        let email_text = if raw.emails.is_empty() { "Не найдено".to_string() } else { raw.emails.join(", ") };
-        report.push_str(&format!("📧 Emails: {}\n", email_text));
-
-        // Для Телефонів
-        let phone_text = if raw.phones.is_empty() { "Не найдено".to_string() } else { raw.phones.join(", ") };
-        report.push_str(&format!("📞 Тел: {}\n", phone_text));
-
-        report.push_str("\n📱 Соцсети:\n");
-        for (platform, status) in &raw.socials {
-            report.push_str(&format!("   └ {}: {}\n", platform, status));
-        }
-
-        report.push_str("📈 Маркетинг:\n");
-        let ads_info: Vec<String> = raw.ads.iter()
-            .map(|(k, v)| format!("{}: {}", k, if *v { "✅" } else { "❌" }))
-            .collect();
-        report.push_str(&format!("   └ Реклама: {}\n", ads_info.join(" | ")));
-        report.push_str(&format!("   └ Возраст домена: {} дней\n", raw.domain_age_days.unwrap_or(0)));
-        
-        report.push_str("──────────────────────────────────────────\n\n");
-    }
-
-    // 4. Закріплюємо ліди за юзером
-    sqlx::query!("UPDATE leads SET user_id = $1 WHERE id = ANY($2)", res.user_id, &lead_ids)
-        .execute(&mut *tx).await.map_err(|e| e.to_string())?;
+    sqlx::query!(
+        "UPDATE leads SET user_id = $1, status = 'completed' WHERE id = ANY($2::uuid[])",
+        user_uuid,
+        &lead_ids as &[Uuid]
+    )
+    .execute(&mut *tx)
+    .await
+    .map_err(|e| e.to_string())?;
 
     tx.commit().await.map_err(|e| e.to_string())?;
-
-    Ok(report)
+    Ok(lead_ids.len() as i64)
 }

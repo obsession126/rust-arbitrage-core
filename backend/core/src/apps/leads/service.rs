@@ -1,18 +1,15 @@
 use sqlx::PgPool;
 use uuid::Uuid;
 
-
-// Якщо у тебе в БД ID це Integer, прибери UUID і використовуй i32
 pub async fn claim_free_platinum(
     pool: &PgPool,
-    user_id: uuid::Uuid, // Переконайся, що в БД саме UUID. Якщо Serial - став i32
-) -> Result<String, String> {
+    user_tg_id: i64,
+) -> Result<(String, String, serde_json::Value), String> {
     let mut tx = pool.begin().await.map_err(|e| e.to_string())?;
 
-    // 1. Лочимо юзера
     let user = sqlx::query!(
-        "SELECT is_new FROM users WHERE id = $1 FOR UPDATE",
-        user_id
+        "SELECT id, is_new FROM users WHERE tg_id = $1 FOR UPDATE",
+        user_tg_id
     )
     .fetch_optional(&mut *tx)
     .await
@@ -20,13 +17,15 @@ pub async fn claim_free_platinum(
     .ok_or("User not found")?;
 
     if !user.is_new.unwrap_or(false) {
-        return Err("Ви вже використали свій бонус".into());
+        // Явно завершуємо роботу перед поверненням помилки
+        return Err("Bonus already claimed".into());
     }
 
-    // 2. Шукаємо лід. Додаємо обробку випадку, коли Platinum немає
-    let lead = sqlx::query!(
+    // 2. Шукаємо вільний лід
+    let lead_data = sqlx::query!(
         r#"
-        SELECT id, target_url FROM leads
+        SELECT id, target_url, target_name, raw_data 
+        FROM leads 
         WHERE rank = 'platinum'
           AND user_id IS NULL
           AND is_active = true
@@ -36,32 +35,34 @@ pub async fn claim_free_platinum(
     )
     .fetch_optional(&mut *tx)
     .await
-    .map_err(|e| e.to_string())?;
+    .map_err(|e| e.to_string())?
+    .ok_or("Out of stock: No free platinum leads available")?;
 
-    let lead_data = match lead {
-        Some(l) => l,
-        None => return Err("На жаль, безкоштовні ліди закінчилися. Зачекайте оновлення бази".into()),
-    };
-
-    // 3. Assign + Disable bonus
+    // 3. Оновлюємо лід, приписуючи йому UUID юзера (user.id)
     sqlx::query!(
         "UPDATE leads SET user_id = $1, status = 'completed' WHERE id = $2",
-        user_id,
-        lead_data.id
+        user.id as Uuid, // Явно вказуємо, що це Uuid
+        lead_data.id as Uuid
     )
     .execute(&mut *tx)
     .await
-    .map_err(|e| e.to_string())?;
+    .map_err(|e| format!("Database error (leads update): {}", e))?;
 
+    // 4. Оновлюємо статус юзера за його tg_id (i64)
     sqlx::query!(
-        "UPDATE users SET is_new = false WHERE id = $1",
-        user_id
+        "UPDATE users SET is_new = false WHERE tg_id = $1",
+        user_tg_id // Використовуємо вхідний i64
     )
     .execute(&mut *tx)
     .await
     .map_err(|e| e.to_string())?;
-
+    
     tx.commit().await.map_err(|e| e.to_string())?;
 
-    Ok(lead_data.target_url)
+
+    Ok((
+        lead_data.target_url, 
+        lead_data.target_name, 
+        lead_data.raw_data.unwrap_or_default() // Додай це
+    ))
 }

@@ -29,7 +29,7 @@ def clean_emails(found_emails):
     return list(cleaned)
 
 
-def clean_phones(found_phones, country_code="UA"):
+def clean_phones(found_phones, country_code="PL"):
     configs = {
         "UA": {"prefixes": ("380", "0"), "lengths": (10, 12), "strict": True},
         "US": {"prefixes": ("1",), "lengths": (10, 11), "strict": False},

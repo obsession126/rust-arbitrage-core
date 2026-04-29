@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE leads SET user_id = $1 WHERE id = ANY($2)",
+  "query": "UPDATE leads SET user_id = $1, status = 'completed' WHERE id = ANY($2::uuid[])",
   "describe": {
     "columns": [],
     "parameters": {
@@ -11,5 +11,5 @@
     },
     "nullable": []
   },
-  "hash": "588a479183c769f6f864d89b7a24e6b5bc147479a17a462c8d02463e916e0a22"
+  "hash": "a1461da2a9cd430d5eac531bea7d2c912bc540f79db78c690ce9f50f755c6e01"
 }

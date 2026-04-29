@@ -9,6 +9,8 @@ pub struct CreatePaymentRequest {
     pub quantity: i32,
 }
 
+
+
 #[derive(Deserialize)]
 pub struct ConfirmPaymentRequest {
     pub transaction_id: Uuid,
