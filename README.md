@@ -1,6 +1,8 @@
 # 🔗 SHADOW-LEAD-ENGINE
 **High-performance microservice architecture for OSINT, lead generation, and automated data processing.**
 
+[![Live Demo](https://img.shields.io/badge/LIVE_DEMO-leadhunteros.com-39FF14?style=for-the-badge&logo=google-chrome&logoColor=black)](https://leadhunteros.com)
+[![Stack](https://img.shields.io/badge/Tech_Stack-Rust%20|%20Next.js%20|%20PostgreSQL-white?style=for-the-badge)](https://leadhunteros.com)
 ---
 
 ### ⚙️ ОСНОВНИЙ ФУНКЦІОНАЛ
