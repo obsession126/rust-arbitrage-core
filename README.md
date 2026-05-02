@@ -10,7 +10,11 @@
 
 | Dashboard Overview | Lead Intelligence (Deep Dive) |
 | :--- | :--- |
-| ![Dashboard Screenshot](https://via.placeholder.com/600x400/0a0a0a/39ff14?text=DASHBOARD_PREVIEW) | ![Lead Intel Screenshot](https://via.placeholder.com/600x400/0a0a0a/39ff14?text=LEAD_INTEL_PREVIEW) |
+| ![Dashboard](chrome_tgyKko9bcf.png) | ![Lead Intel](chrome_CPRjPwOAnz.png) |
+
+| Homepage Overview | Packages |
+| :--- | :--- |
+| ![Homepage](chrome_S69qUbyXH1.png) | ![Packages](chrome_mLSMKfzlZC.png) |
 
 
 ### ⚙️ ОСНОВНИЙ ФУНКЦІОНАЛ
