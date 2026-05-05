@@ -1,38 +1,40 @@
-# 🔗 SHADOW-LEAD-ENGINE
-**High-performance microservice architecture for OSINT, lead generation, and automated data processing.**
+# 🔗 SHADOW-DATA-ENGINE
+**High-performance microservice architecture for behavioral analytics, competitive intelligence, and automated data processing.**
 
 [![Production URL](https://img.shields.io/badge/LIVE_DEMO-leadhunteros.com-39FF14?style=for-the-badge&logo=google-chrome&logoColor=black)](https://leadhunteros.com)
 [![Stack](https://img.shields.io/badge/Tech_Stack-Rust%20|%20Next.js%20|%20PostgreSQL-white?style=for-the-badge)](https://leadhunteros.com)
+
 ---
 
 ### 📸 SYSTEM PREVIEW
-> **Note:** Here is how the OSINT Intelligence Layer looks in action.
+> **Note:** Technical overview of the Behavioral Intelligence Layer in action.
 
-| Dashboard Overview | Lead Intelligence (Deep Dive) |
+| Dashboard Overview | Data Intelligence (Deep Dive) |
 | :--- | :--- |
-| ![Dashboard](chrome_tgyKko9bcf.png) | ![Lead Intel](chrome_CPRjPwOAnz.png) |
+| ![Dashboard](chrome_tgyKko9bcf.png) | ![Data Intel](chrome_CPRjPwOAnz.png) |
 
-| Homepage Overview | Packages |
+| Homepage Overview | Service Tiers |
 | :--- | :--- |
 | ![Homepage](chrome_S69qUbyXH1.png) | ![Packages](chrome_mLSMKfzlZC.png) |
 
+---
 
-### ⚙️ ОСНОВНИЙ ФУНКЦІОНАЛ
-* **Multi-source OSINT:** Автоматизований збір даних з Google Maps, LinkedIn та корпоративних сайтів.
-* **Data Enrichment:** Пошук та верифікація контактів (Email, Social Media) через перехресний аналіз джерел.
-* **Signal Intelligence:** Моніторинг рекламної активності (Google, Meta, TikTok) для визначення ліквідності ліда.
-* **Anti-Detection System:** Ротація резидентських проксі, керування Fingerprints та емуляція Human-like поведінки.
+### ⚙️ CORE FUNCTIONALITY
+* **Multi-source Data Aggregation:** Automated collection of public business information and corporate infrastructure insights.
+* **Data Enrichment:** Advanced verification of corporate contact points and social presence through cross-referencing public sources.
+* **Market Intelligence Signals:** Monitoring digital activity patterns to determine business liquidity and market positioning.
+* **Traffic Security Systems:** Management of residential proxies, browser fingerprints, and human-like behavioral emulation to ensure stable data flow.
 
 ---
 
-### 🧠 ФІЛОСОФІЯ ПРОЕКТУ
+### 🧠 PROJECT PHILOSOPHY
 
-Проект побудований на принципах **швидкості**, **невидимості** та **автономності**.
+The project is built on the principles of **performance**, **discretion**, and **autonomy**.
 
-* **Ефективність (Rust-first):** Ядро системи на Rust (Axum/Tokio) забезпечує обробку тисяч конкурентних запитів з мінімальним споживанням RAM. Кожен мілісекунд затримки — це ризик виявлення анти-фрод системою.
-* **Агностичність до джерел:** Мікросервісна структура дозволяє інтегрувати нові модулі парсингу без втручання в основний оркестратор.
-* **Стелс-інженерія:** Ми не зламуємо захист, ми стаємо невидимими для нього через глибоке управління відбитками браузера та динамічну ротацію проксі.
-* **Чистота даних (Zero Noise):** Основний акцент на OSINT-збагаченні. На виході система видає готовий бізнес-актив, а не просто "сміттєвий" список контактів.
+* **Efficiency (Rust-first):** The system core, built on Rust (Axum/Tokio), ensures high-concurrency processing of thousands of requests with minimal memory overhead. Every millisecond of latency is minimized to maintain connection stability.
+* **Source Agnosticism:** A modular microservice architecture allows for the integration of new data processing units without affecting the main orchestrator.
+* **Stealth Engineering:** We focus on remaining invisible to security filters through deep management of browser fingerprints and dynamic proxy rotation.
+* **Data Integrity (Zero Noise):** Primary focus on business intelligence enrichment. The system delivers refined business assets rather than raw, unverified data lists.
 
 ---
 
@@ -40,36 +42,36 @@
 
 ```mermaid
 graph TD
-    %% Фронтенди
+    %% Interface Layer
     subgraph Clients [Interface Layer]
         TG[Telegram Bot - Rust/Teloxide]
-        Web[Future Web Dashboard - Vue/React]
+        Web[Web Dashboard - Next.js]
     end
 
-    %% Оркестрація та API
+    %% Orchestration Layer
     subgraph Core [Orchestration Layer - Rust]
         Gateway[API Gateway / Auth]
         Logic[Business Logic Engine]
     end
 
-    %% Повідомлення та черги
+    %% Message Broker
     subgraph Transport [Message Broker]
         Redis[(Redis Cloud / Streams)]
     end
 
-    %% Воркери
-    subgraph Workers [OSINT Intelligence Layer]
+    %% Intelligence Layer
+    subgraph Workers [Data Intelligence Layer]
         Scanner[Playwright Stealth Scanner]
-        AdEngine[Signal Intelligence Module]
+        AdEngine[Market Signals Module]
         Parser[Python/Rust Data Scrubbers]
     end
 
-    %% Дані
+    %% Data Layer
     subgraph Storage [Data Layer]
         Postgres[(PostgreSQL - Main DB)]
     end
 
-    %% Зв'язки
+    %% Relations
     TG & Web --> Gateway
     Gateway --> Logic
     Logic <--> Redis
