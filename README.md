@@ -15,7 +15,7 @@
 
 | Homepage Overview | Service Tiers |
 | :--- | :--- |
-| ![Homepage](chrome_S69qUbyXH1.png) | ![Packages](chrome_mLSMKfzlZC.png) |
+| ![Homepage](chrome_S69qUbyXH1 (2).png) | ![Packages](chrome_mLSMKfzlZC.png) |
 
 ---
 
